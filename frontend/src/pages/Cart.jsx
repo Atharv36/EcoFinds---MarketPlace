@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
+import { ordersAPI } from '../services/api'
 
 const Cart = () => {
   const { isAuthenticated } = useAuth()
@@ -26,6 +27,10 @@ const Cart = () => {
     const updatedCart = cartItems.filter(item => item.id !== itemId)
     setCartItems(updatedCart)
     localStorage.setItem('cart', JSON.stringify(updatedCart))
+    
+    // Dispatch custom event to update cart count in header
+    window.dispatchEvent(new CustomEvent('cartUpdated'))
+    
     toast.success('Item removed from cart')
   }
 
@@ -40,9 +45,38 @@ const Cart = () => {
     )
     setCartItems(updatedCart)
     localStorage.setItem('cart', JSON.stringify(updatedCart))
+    
+    // Dispatch custom event to update cart count in header
+    window.dispatchEvent(new CustomEvent('cartUpdated'))
   }
 
   const total = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+
+  const handleCheckout = async () => {
+    try {
+      const orderData = {
+        products: cartItems.map(item => item.id),
+        totalPrice: total
+      }
+
+      const response = await ordersAPI.create(orderData)
+      
+      if (response.data.success) {
+        // Clear cart
+        setCartItems([])
+        localStorage.removeItem('cart')
+        
+        // Dispatch custom event to update cart count in header
+        window.dispatchEvent(new CustomEvent('cartUpdated'))
+        
+        toast.success('Order placed successfully!')
+        navigate('/dashboard')
+      }
+    } catch (error) {
+      console.error('Error creating order:', error)
+      toast.error('Failed to place order. Please try again.')
+    }
+  }
 
   if (cartItems.length === 0) {
     return (
@@ -106,7 +140,9 @@ const Cart = () => {
       
       <div className="cart-summary">
         <h2>Total: ${total.toFixed(2)}</h2>
-        <button className="checkout-btn">Proceed to Checkout</button>
+        <button className="checkout-btn" onClick={handleCheckout}>
+          Proceed to Checkout
+        </button>
       </div>
     </div>
   )

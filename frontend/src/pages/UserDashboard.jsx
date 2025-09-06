@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
-import { productsAPI } from '../services/api'
+import { productsAPI, ordersAPI } from '../services/api'
 import AddProductForm from '../components/AddProductForm'
 import toast from 'react-hot-toast'
 
@@ -11,6 +11,7 @@ const UserDashboard = () => {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('profile')
   const [userListings, setUserListings] = useState([])
+  const [purchaseHistory, setPurchaseHistory] = useState([])
   const [loading, setLoading] = useState(false)
   const [showAddForm, setShowAddForm] = useState(false)
   
@@ -24,6 +25,8 @@ const UserDashboard = () => {
   useEffect(() => {
     if (activeTab === 'listings') {
       fetchUserListings()
+    } else if (activeTab === 'purchases') {
+      fetchPurchaseHistory()
     }
   }, [activeTab])
 
@@ -34,13 +37,28 @@ const UserDashboard = () => {
       if (response.data.success) {
         // Filter products by current user (in a real app, backend would handle this)
         const userProducts = response.data.data.filter(product => 
-          product.owner && product.owner._id === user?.id
+          product.owner && (product.owner._id === user?.id || product.owner === user?.id)
         )
         setUserListings(userProducts)
       }
     } catch (error) {
       console.error('Error fetching user listings:', error)
       toast.error('Failed to load your listings')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchPurchaseHistory = async () => {
+    try {
+      setLoading(true)
+      const response = await ordersAPI.getAll()
+      if (response.data.success) {
+        setPurchaseHistory(response.data.orders)
+      }
+    } catch (error) {
+      console.error('Error fetching purchase history:', error)
+      toast.error('Failed to load purchase history')
     } finally {
       setLoading(false)
     }
@@ -127,28 +145,54 @@ const UserDashboard = () => {
         {activeTab === 'purchases' && (
           <div className="purchase-history">
             <h2>Purchase History</h2>
-            <table className="purchases-table">
-              <thead>
-                <tr>
-                  <th>Product</th>
-                  <th>Price</th>
-                  <th>Category</th>
-                  <th>Seller</th>
-                  <th>Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {purchaseHistory.map(purchase => (
-                  <tr key={purchase.id}>
-                    <td>{purchase.name}</td>
-                    <td>${purchase.price.toFixed(2)}</td>
-                    <td>{purchase.category}</td>
-                    <td>{purchase.seller}</td>
-                    <td>{purchase.purchaseDate}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            {loading ? (
+              <div className="loading">Loading purchase history...</div>
+            ) : (
+              <>
+                {purchaseHistory.length > 0 ? (
+                  <div className="orders-list">
+                    {purchaseHistory.map(order => (
+                      <div key={order._id} className="order-item">
+                        <div className="order-header">
+                          <h3>Order #{order._id.slice(-6)}</h3>
+                          <span className={`order-status ${order.status.toLowerCase()}`}>
+                            {order.status}
+                          </span>
+                        </div>
+                        <div className="order-details">
+                          <p><strong>Total:</strong> ${order.totalPrice.toFixed(2)}</p>
+                          <p><strong>Date:</strong> {new Date(order.createdAt).toLocaleDateString()}</p>
+                          <p><strong>Products:</strong> {order.products.length} item(s)</p>
+                        </div>
+                        {order.products && order.products.length > 0 && (
+                          <div className="order-products">
+                            {order.products.map(product => (
+                              <div key={product._id} className="order-product">
+                                <img src={product.image} alt={product.title} />
+                                <div className="product-info">
+                                  <h4>{product.title}</h4>
+                                  <p>${product.price.toFixed(2)}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="no-purchases">
+                    <p>You haven't made any purchases yet.</p>
+                    <button 
+                      className="btn btn-primary"
+                      onClick={() => navigate('/products')}
+                    >
+                      Browse Products
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         )}
       </div>

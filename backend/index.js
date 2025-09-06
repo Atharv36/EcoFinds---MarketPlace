@@ -8,14 +8,14 @@ import helmet from 'helmet';
 import connectDB from './config/connectDB.js';
 import userRouter from './route/user.route.js';
 import productRouter from './route/product.route.js';
-// import orderRouter from './route/order.route.js'
+import orderRouter from './route/order.route.js'
 
 console.log('JWT_SECRET loaded:', process.env.JWT_SECRET ? 'Yes' : 'No');
 console.log('MONGO_URL loaded:', process.env.MONGO_URL ? 'Yes' : 'No');
 const app =express();
 app.use(cors({
     credentials:true,
-    origin:process.env.FRONTEND_URL
+    origin:['http://localhost:5173', 'http://localhost:5174', process.env.FRONTEND_URL].filter(Boolean)
 }))
 
 
@@ -33,7 +33,7 @@ app.get("/",(req,res)=>{
 
 app.use('/api/user',userRouter);
 app.use('/api/products', productRouter);
-// app.use('/api/orders', orderRouter);
+app.use('/api/orders', orderRouter);
 
 
 connectDB().then(()=>{

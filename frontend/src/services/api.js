@@ -51,4 +51,13 @@ export const productsAPI = {
   delete: (id) => api.delete(`/products/delete/${id}`),
 };
 
+// Orders API
+export const ordersAPI = {
+  create: (orderData) => api.post('/orders/create', orderData),
+  getAll: (params = {}) => api.get('/orders/get', { params }),
+  getById: (id) => api.get(`/orders/get/${id}`),
+  update: (id, orderData) => api.put(`/orders/update/${id}`, orderData),
+  delete: (id) => api.delete(`/orders/delete/${id}`),
+};
+
 export default api;
