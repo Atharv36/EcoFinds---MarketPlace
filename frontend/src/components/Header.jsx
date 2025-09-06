@@ -2,11 +2,27 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import SearchBar from './SearchBar'
+import { useState, useEffect } from 'react'
 
 const Header = () => {
   const { user, logout, isAuthenticated } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
+  const [cartCount, setCartCount] = useState(0)
+
+  useEffect(() => {
+    const updateCartCount = () => {
+      const cart = JSON.parse(localStorage.getItem('cart') || '[]')
+      setCartCount(cart.length)
+    }
+    
+    updateCartCount()
+    window.addEventListener('cartUpdated', updateCartCount)
+    
+    return () => {
+      window.removeEventListener('cartUpdated', updateCartCount)
+    }
+  }, [])
 
   const handleLogout = () => {
     logout()
@@ -37,9 +53,22 @@ const Header = () => {
         >
           Products
         </Link>
+        <Link 
+          to="/categories"
+          className={`nav-btn ${isActive('/categories') ? 'active' : ''}`}
+        >
+          Categories
+        </Link>
       </nav>
       
       <div className="user-actions">
+        {/* Cart Button - Always visible */}
+        <Link to="/cart" className="cart-btn">
+          <span className="cart-icon">🛒</span>
+          {cartCount > 0 && (
+            <span className="cart-count">{cartCount}</span>
+          )}
+        </Link>
         {isAuthenticated ? (
           <>
             <Link to="/dashboard" className="btn btn-outline">

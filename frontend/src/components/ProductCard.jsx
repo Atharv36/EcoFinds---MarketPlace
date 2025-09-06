@@ -40,6 +40,10 @@ const ProductCard = ({ product, isLoading = false }) => {
       
       // Save to localStorage
       localStorage.setItem('cart', JSON.stringify(existingCart))
+      
+      // Dispatch custom event to update cart count in header
+      window.dispatchEvent(new CustomEvent('cartUpdated'))
+      
       toast.success('Added to cart!')
     } catch (error) {
       console.error('Error adding to cart:', error)
